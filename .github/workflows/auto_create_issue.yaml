@@ -2,6 +2,10 @@ name: Auto create issue
 
 on:
   workflow_dispatch:
+    inputs:
+      card_content:
+        description: 'Card content (used for manual trigger)'
+        required: false
   project_card:
     types:
       - created
@@ -11,33 +15,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Create issue for new project card
+        id: create_issue
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             CARD_CONTENT=${{ github.event.inputs.card_content }}
           else
             CARD_CONTENT=${{ github.event.project_card.note }}
           fi
-          echo "Starting auto_create_issue workflow"
-          
-          CARD_CONTENT=${{ github.event.project_card.note }}
-          ISSUE_TITLE="Auto created issue for card: ${CARD_CONTENT}"
-          ISSUE_BODY="This issue was created automatically for the newly added project card with the following content:\n\n${CARD_CONTENT}"
-          
-          echo "Card content: ${CARD_CONTENT}"
-          echo "Creating issue with title: ${ISSUE_TITLE}"
-          echo "Creating issue with body: ${ISSUE_BODY}"
-          
-          ISSUE_PAYLOAD=$(echo '{ "title": "'"${ISSUE_TITLE}"'", "body": "'"${ISSUE_BODY}"'" }' | jq -c .)
-          
-          echo "Issue payload: ${ISSUE_PAYLOAD}"
-          
-          GITHUB_API_URL="https://api.github.com"
-          GITHUB_REPO=${{ github.repository }}
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-          
-          echo "Creating issue in repo: ${GITHUB_REPO}"
-          ISSUE_RESPONSE=$(curl -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" -d "${ISSUE_PAYLOAD}" "${GITHUB_API_URL}/repos/${GITHUB_REPO}/issues")
-          
-          echo "Issue response: ${ISSUE_RESPONSE}"
+
+          ISSUE_TITLE=$(echo "$CARD_CONTENT" | head -n1)
+          ISSUE_BODY=$(echo -e "$CARD_CONTENT" | tail -n +2)
+
+          ISSUE_PAYLOAD=$(echo '{}' | jq --arg title "$ISSUE_TITLE" --arg body "$ISSUE_BODY" '. | .title=$title | .body=$body')
+          ISSUE_RESPONSE=$(gh issue create --json title,body --title "$ISSUE_TITLE" --body "$ISSUE_BODY")
+          ISSUE_URL=$(echo "$ISSUE_RESPONSE" | jq -r '.html_url')
+
+          echo "::set-output name=issue_url::$ISSUE_URL"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Display created issue URL
+        run: |
+          echo "Created issue: ${{ steps.create_issue.outputs.issue_url }}"
