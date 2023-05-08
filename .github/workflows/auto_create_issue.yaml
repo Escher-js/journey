@@ -1,6 +1,7 @@
 name: Auto create issue
 
 on:
+  workflow_dispatch:
   project_card:
     types:
       - created
