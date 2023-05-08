@@ -12,6 +12,11 @@ jobs:
     steps:
       - name: Create issue for new project card
         run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            CARD_CONTENT=${{ github.event.inputs.card_content }}
+          else
+            CARD_CONTENT=${{ github.event.project_card.note }}
+          fi
           echo "Starting auto_create_issue workflow"
           
           CARD_CONTENT=${{ github.event.project_card.note }}
