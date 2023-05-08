@@ -1,0 +1,34 @@
+name: Auto create issue
+
+on:
+  project_card:
+    types:
+      - created
+
+jobs:
+  auto_create_issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create issue for new project card
+        run: |
+          CARD_CONTENT=${{ github.event.project_card.note }}
+          ISSUE_TITLE="Auto created issue for card: ${CARD_CONTENT}"
+          ISSUE_BODY="This issue was created automatically for the newly added project card with the following content:\n\n${CARD_CONTENT}"
+          
+          echo "Creating issue with title: ${ISSUE_TITLE}"
+          echo "Creating issue with body: ${ISSUE_BODY}"
+          
+          ISSUE_PAYLOAD=$(echo '{ "title": "'"${ISSUE_TITLE}"'", "body": "'"${ISSUE_BODY}"'" }' | jq -c .)
+          
+          echo "Issue payload: ${ISSUE_PAYLOAD}"
+          
+          GITHUB_API_URL="https://api.github.com"
+          GITHUB_REPO=${{ github.repository }}
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          
+          echo "Creating issue in repo: ${GITHUB_REPO}"
+          ISSUE_RESPONSE=$(curl -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" -d "${ISSUE_PAYLOAD}" "${GITHUB_API_URL}/repos/${GITHUB_REPO}/issues")
+          
+          echo "Issue response: ${ISSUE_RESPONSE}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
