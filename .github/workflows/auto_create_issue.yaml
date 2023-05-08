@@ -11,10 +11,13 @@ jobs:
     steps:
       - name: Create issue for new project card
         run: |
+          echo "Starting auto_create_issue workflow"
+          
           CARD_CONTENT=${{ github.event.project_card.note }}
           ISSUE_TITLE="Auto created issue for card: ${CARD_CONTENT}"
           ISSUE_BODY="This issue was created automatically for the newly added project card with the following content:\n\n${CARD_CONTENT}"
           
+          echo "Card content: ${CARD_CONTENT}"
           echo "Creating issue with title: ${ISSUE_TITLE}"
           echo "Creating issue with body: ${ISSUE_BODY}"
           
